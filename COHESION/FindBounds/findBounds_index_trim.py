@@ -256,7 +256,7 @@ def findBoundsIndex(index, start_t, cur_t, last_mutual_t, last_t, method, rate):
 
 
 if __name__ == "__main__":
-    dataset_dir = "./COHESION/Find_Bounds/"
+    dataset_dir = "./Datasets/Networks/"
     dataset = "C26_attributed.txt"
 
     # Input parameters

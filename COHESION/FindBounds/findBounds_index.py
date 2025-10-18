@@ -160,7 +160,7 @@ def findBoundsIndex(index, cur_t, method, rate):
 
 
 if __name__ == "__main__":
-    dataset_dir = "./COHESION/Find_Bounds/"
+    dataset_dir = "./Datasets/Networks/"
     dataset = "CC_attributed.txt"
 
     # Input parameters
