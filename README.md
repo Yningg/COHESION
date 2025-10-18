@@ -6,7 +6,7 @@ Code and dataset for the paper "Explaining Cohesiveness of Social Communities: A
 ## Folder Structure
     .
     ├── COHESION           # Scripts for three COHESION frameworks (IO-COHESION, I-COHESION_w, and I-COHESION)
-    ├── Competitors           # Scripts for generating competitors' explanations
+    ├── Competitors        # Scripts for generating competitors' explanations
     ├── Datasets           # Datasets used for calculation
     ├── Experiments        # Some scripts for conducting experiments
     ├── Figures            # Figures
