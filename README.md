@@ -15,6 +15,7 @@ Code and dataset for the paper "Explaining Cohesiveness of Social Communities: A
 
 ### Competitors
 --> Feature.py: A feature-based method providing post-hoc explanations for communities based on interpretable network features, identifying explanatory features at both the node and node-pair levels. Refer to its [codebase](https://github.com/sophiefsadler/community_finding/tree/master), graph feature computation component was extracted.
+
 --> Prototype.py: A prototype-based method explaining communities using a central node and its radius. We adapted its [original codebase](https://github.com/xuannnn523/CCTS) with modified inputs. Since its explanation consists only of a central node and an influence radius, other unrelated output information was commented out.
 
 ### Datasets
