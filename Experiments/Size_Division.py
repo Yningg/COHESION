@@ -39,7 +39,7 @@ def divide_communities_by_size(node_counts, num_groups=5):
 
 
 if __name__ == "__main__":
-    dir = "./Datasets/Algorithm_Output/"
+    dir = "./Datasets/Communities/"
     datasets = ["BTW", "CC", "C26", "C144"]
 
     for dataset in datasets:
