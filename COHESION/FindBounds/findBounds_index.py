@@ -1,5 +1,5 @@
 """
-This script is used to find the boundaries of each measure given a graph (basic method)
+This script is used to find the boundaries of each measure given a graph (index method without trimming)
 
 Input: Graph, decay_method, decay_rate
 Output: min-max of five measures
