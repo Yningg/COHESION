@@ -1,7 +1,9 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
+import tqdm
+import ast
+import os
 import random
 import time
 import math
@@ -11,9 +13,13 @@ random.seed(42)
 np.random.seed(42)
 
 def construct_graph(graph_path):
-    undirected_G = nx.read_edgelist(graph_path, nodetype=str, data=(('timestamp', str), ('sentiment', str)), create_using=nx.Graph()) # type: ignore
+    undirected_G = nx.read_edgelist(graph_path, nodetype=str, data=False, create_using=nx.Graph()) # type: ignore
+    print(f"Graph info: {undirected_G.number_of_nodes()} nodes, {undirected_G.number_of_edges()} edges, density: {nx.density(undirected_G)}")
     return undirected_G
 
+def construct_community(graph, community_nodes):
+    community = graph.subgraph(community_nodes).copy()
+    return community
 
 class CommunityAnalyzer:
     def __init__(self, G, community_nodes, alpha=1, beta=1, seta=1, if_part=True, if_limit_threshold=True, if_threshold_pruning=True, if_BFS=True):
@@ -144,12 +150,9 @@ class CommunityAnalyzer:
             right = max_distance + 1
         return left, right
 
-if __name__ == '__main__':
-    community_path = "./Dataset/User_Study/community.txt"
-    graph_path = "./Dataset/User_Study/graph.txt"
-    community = construct_graph(community_path)
-    graph = construct_graph(graph_path)
 
+if __name__ == '__main__':
+    # Input parameters
     tag = [False,True]
     i = 1
     if_write = True
@@ -162,33 +165,68 @@ if __name__ == '__main__':
     # 是否使用BFS
     if_BFS = tag[i]
 
+    dataset_list = ["BTW", "CC", "C26", "C144"]
+    data_path = "./Datasets/OSNs/"
+    community_path = "./Datasets/Communities/"
+    last_timestamps = {"BTW": 1506315747, "CC": 1643673425, "C26": 1672531185, "C144": 1672531150}
 
-    community_nodes = list(community.nodes())
-    max_community_size = len(community_nodes)
 
-    # 存储每个社区的中心节点、阈值、覆盖率等信息
-    analyzer = CommunityAnalyzer(graph, community_nodes, if_part=if_part, if_limit_threshold=if_limit_threshold, if_threshold_pruning=if_threshold_pruning, if_BFS=if_BFS)
-    part_start_time = time.time()
-    score, coverage_rate, error_rate, center_node, threshold_distance, proportion, threshold_nodes = analyzer.find_best_center_and_threshold()
-    part_end_time = time.time()
-    part_total_cost_time = part_end_time - part_start_time
-    print(f'Central node {center_node}，threshold radius {threshold_distance}')
+    for dataset in dataset_list:
+        dataset_path = data_path + dataset + "_attributed.txt"
+        graph = construct_graph(data_path + dataset + "_attributed.txt")
 
-    # 输出社区的结果
-    # print(f"Number of nodes: {len(community_nodes)}  score: [{score:.2f}]")
-    # print(f"  Central node: {center_node}, threshold radius: {threshold_distance}")
-    # print(f"  Initial nodes: {community_nodes}")
-    # print(f"  All nodes in the explainable region: {threshold_nodes}")
-    # print(f"  Proportion：{proportion * 100:.2f}%, time consuming: {part_total_cost_time * 1000}ms")
-    # print(f"  Coverage rate: {coverage_rate:.2%}, Error rate: {error_rate:.2%}\n")
+        community_dir = community_path + dataset + "/"
+        community_files = [community_dir + f for f in os.listdir(community_dir) if "Integrated" in f][0]
+        time_spent_list = []
+
+        # Read each line of the community file, compute cohesiveness for each community
+        with open(community_files, "r") as f:
+            lines = f.readlines()
+            results = []
+            for line in tqdm.tqdm(lines):
+                
+                starttime = time.time()
+
+                community = construct_community(graph, list(ast.literal_eval(line)))
+                community_nodes = list(community.nodes())
+                max_community_size = len(community_nodes)
+                analyzer = CommunityAnalyzer(graph, community_nodes, if_part=if_part, if_limit_threshold=if_limit_threshold, if_threshold_pruning=if_threshold_pruning, if_BFS=if_BFS)
+                score, coverage_rate, error_rate, center_node, threshold_distance, proportion, threshold_nodes = analyzer.find_best_center_and_threshold()
+                explanation = f'Central node {center_node}，threshold radius {threshold_distance}'
+                
+                endtime = time.time()
+                time_lapse = endtime - starttime
+                time_spent_list.append(time_lapse)
+
+                # print(f"Number of nodes: {len(community_nodes)}  score: [{score:.2f}]")
+                # print(f"  Central node: {center_node}, threshold radius: {threshold_distance}")
+                # print(f"  Initial nodes: {community_nodes}")
+                # print(f"  All nodes in the explainable region: {threshold_nodes}")
+                # print(f"  Proportion：{proportion * 100:.2f}%, time consuming: {part_total_cost_time * 1000}ms")
+                # print(f"  Coverage rate: {coverage_rate:.2%}, Error rate: {error_rate:.2%}\n")
+
+                results.append(f"{community}\t{explanation}\t{time_lapse}\n")
+
+        avg_time = np.mean(time_spent_list)
+
+        print("Average time spent for explanation generation(s):", avg_time)
+        output_file = community_dir + dataset + "_communities_cohesiveness_Prototype.txt"
+
+        # Write the results to a txt file
+        with open(output_file, "w") as f:
+            f.write("Community\tExplanation\tExpTime\n")
+            for line in results:
+                f.write(line)
+        
+        print(f"Results saved to {output_file}")
 
     # Visualize the community
-    plt.figure(figsize=(4, 4))
-    pos = nx.circular_layout(community)
-    # For center node, assign a larger size, mark the threshold distance within the community
-    node_sizes = [1000 if node == center_node else 500 for node in community.nodes()]
-    text = "r=" + str(threshold_distance)
-    # Put the text in the empty space of the circular layout
-    plt.text(0.2, 0.1, text, fontsize=12, ha='center', va='center', color='black')
-    nx.draw(community, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=node_sizes, font_size=10)
-    plt.show()
+    # plt.figure(figsize=(4, 4))
+    # pos = nx.circular_layout(community)
+    # # For center node, assign a larger size, mark the threshold distance within the community
+    # node_sizes = [1000 if node == center_node else 500 for node in community.nodes()]
+    # text = "r=" + str(threshold_distance)
+    # # Put the text in the empty space of the circular layout
+    # plt.text(0.2, 0.1, text, fontsize=12, ha='center', va='center', color='black')
+    # nx.draw(community, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=node_sizes, font_size=10)
+    # plt.show()
