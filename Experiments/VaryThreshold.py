@@ -4,7 +4,7 @@ import tqdm
 
 target_path = "./"
 sys.path.append(target_path)
-import COHESION.FindBounds.findBounds_index_trim as fb_it
+import COHESION.Preprocessing.preprocessing_index_trim as pp_it
 
 
 # Input parameters
@@ -21,12 +21,12 @@ for dataset in dataset_list:
     dataset_path = data_path + dataset + "_attributed.txt"
     time_spent_list = []
 
-    index, last_mutual_t, last_t = fb_it.buildPNIndex(dataset_path, last_timestamps[dataset])
+    index, last_mutual_t, last_t = pp_it.buildPANEIndex(dataset_path, last_timestamps[dataset])
     
     for th in threshold_list:
         print(f"Processing dataset {dataset} with threshold {th}")
-        start_t = fb_it.findStartTime(last_timestamps[dataset], decay_rate, th)
-        LB_values, UB_values, trimmed_index, time_spent = fb_it.findBoundsIndex(index, start_t, last_timestamps[dataset], last_mutual_t, last_t, decay_method, decay_rate)
+        start_t = pp_it.findStartTime(last_timestamps[dataset], decay_rate, th)
+        LB_values, UB_values, trimmed_index, time_spent = pp_it.findBoundsPANE(index, start_t, last_timestamps[dataset], last_mutual_t, last_t, decay_method, decay_rate)
 
         print("Minimum values:", LB_values)
         print("Maximum values:", UB_values)
