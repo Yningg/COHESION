@@ -10,7 +10,7 @@ sys.path.append(target_path)
 
 from COHESION.Explanation_generation import generate_explanation
 import COHESION.Preprocessing.preprocessing_index as pp_i
-from COHESION.Utils import time_call, calcEnjoyment, getEdges, getPairEdges, normalize_scores, preprocess_dataset, read_node_mapping
+from COHESION.Utils import time_call, calcEnjoyment, normalize_scores, preprocess_dataset, read_node_mapping
 
 
 def ATGS(index, u, community_node, t_obs, rate, method):
@@ -21,15 +21,15 @@ def ATGS(index, u, community_node, t_obs, rate, method):
     out_community_neighbors = total_neighbors - in_community_neighbors
     mutual_neighbors = index["NI"][u][1] & set(community_node)
 
-    uE = getEdges(index, u, in_community_neighbors)
+    uE = pp_i.getEdges(index["PI"], u, in_community_neighbors)
     EI_value = calcEnjoyment(uE, t_obs, rate, method)
     
     SIT_value = 0
-    uME = getPairEdges(index["PI"], u, mutual_neighbors)
+    uME = pp_i.getPairEdges(index["PI"], u, mutual_neighbors)
     for _, edges in uME.items():
         SIT_value += calcEnjoyment(edges, t_obs, rate, method)
 
-    uOE = getEdges(index, u, out_community_neighbors)
+    uOE = pp_i.getEdges(index["PI"], u, out_community_neighbors)
     CED_value = EI_value - calcEnjoyment(uOE, t_obs, rate, method)
 
     return EI_value, SIT_value, CED_value
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         node_mapping = read_node_mapping(node_mapping_path + dataset + "_node_mapping.txt")
 
         pro_dataset = time_call("processing the dataset", preprocess_dataset, dataset_path, last_timestamps[dataset])
-        index, last_mutual_key, last_key = time_call("building the PANE-Index", pp_i.buildPANEIndex, pro_dataset)
+        index, last_mutual_key, last_key = time_call("building the PANE-Index", pp_i.buildPANEIndex, pro_dataset, node_mapping)
         LB_values, UB_values = time_call("calculating the boundaries", pp_i.findBoundsPANE, index, last_timestamps[dataset], decay_method, decay_rate)
     
         community_dir = community_path + dataset + "/"
