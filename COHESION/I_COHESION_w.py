@@ -10,7 +10,7 @@ sys.path.append(target_path)
 
 from COHESION.Explanation_generation import generate_explanation
 import COHESION.Preprocessing.preprocessing_index as pp_i
-from COHESION.Utils import time_call, calcEnjoyment, getEdges, getPairEdges, normalize_scores, preprocess_dataset
+from COHESION.Utils import time_call, calcEnjoyment, getEdges, getPairEdges, normalize_scores, preprocess_dataset, read_node_mapping
 
 
 def ATGS(index, u, community_node, t_obs, rate, method):
@@ -57,12 +57,12 @@ def GIS(PI, community_node, t_obs):
     return GIP_value, GID_value
 
 
-def calc_cs_index(index, community_node, t_cur, method, rate, weights, LB_values, UB_values):
+def calc_cs_index(index, community_node, t_obs, method, rate, weights, LB_values, UB_values):
 
     EI_list, SIT_list, CED_list = [], [], []
 
     for u in tqdm.tqdm(community_node, desc="Calculating ATG-S measures for each user"):
-        EI_u, SIT_u, CED_u = ATGS(index, u, community_node, t_cur, rate, method)
+        EI_u, SIT_u, CED_u = ATGS(index, u, community_node, t_obs, rate, method)
         EI_list.append(normalize_scores(EI_u, "EI", LB_values, UB_values))
         SIT_list.append(normalize_scores(SIT_u, "SIT", LB_values, UB_values))
         CED_list.append(normalize_scores(CED_u, "CED", LB_values, UB_values))
@@ -71,7 +71,7 @@ def calc_cs_index(index, community_node, t_cur, method, rate, weights, LB_values
     SIT_avg = round(np.mean(SIT_list), 4)
     CED_avg = round(np.mean(CED_list), 4)
 
-    GIP, GID = GIS(index["PI"], community_node, t_cur)
+    GIP, GID = GIS(index["PI"], community_node, t_obs)
     GIP = round(normalize_scores(GIP, "GIP", LB_values, UB_values), 4)
     GID = round(normalize_scores(GID, "GID", LB_values, UB_values), 4)
     measure_scores = np.array([float(EI_avg), float(SIT_avg), float(CED_avg), GIP, GID])
@@ -89,10 +89,12 @@ if __name__ == '__main__':
     dataset_list = ["BTW", "CC", "C26", "C144"]
     data_path = "./Datasets/OSNs/"
     community_path = "./Datasets/Communities/"
+    node_mapping_path = "./Datasets/Node_Mapping/"
     last_timestamps = {"BTW": 1506315747, "CC": 1643673425, "C26": 1672531185, "C144": 1672531150}
 
     for dataset in dataset_list:
         dataset_path = data_path + dataset + "_attributed.txt"
+        node_mapping = read_node_mapping(node_mapping_path + dataset + "_node_mapping.txt")
 
         pro_dataset = time_call("processing the dataset", preprocess_dataset, dataset_path, last_timestamps[dataset])
         index, last_mutual_key, last_key = time_call("building the PANE-Index", pp_i.buildPANEIndex, pro_dataset)
@@ -110,6 +112,7 @@ if __name__ == '__main__':
                 
                 starttime = time.time()
                 community = list(ast.literal_eval(line))
+                community = [node_mapping[int(u)] for u in community]
                 S, MS = calc_cs_index(index, community, last_timestamps[dataset], decay_method, decay_rate, measure_weights, LB_values, UB_values)
                 endtime = time.time()
                 time_lapse_comp = endtime - starttime

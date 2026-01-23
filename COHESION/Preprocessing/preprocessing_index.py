@@ -8,19 +8,15 @@ Output: min-max of five measures
 from collections import defaultdict
 from tqdm import tqdm
 import sys
-import tracemalloc
 
 
 target_path = "./"
 sys.path.append(target_path)
-from COHESION.Utils import calcEnjoyment, preprocess_dataset, time_call
+from COHESION.Utils import calcEnjoyment, preprocess_dataset, time_call, read_node_mapping
 
 
 # Build the PANE-Index for the graph
-def buildPANEIndex(dataset):
-    id_map = {} # map original node ids to continuous ids (save space)
-    next_id = 0
-
+def buildPANEIndex(dataset, node_mapping):
     PI = defaultdict(list) # for each pair, store edge list
     pair_masks = defaultdict(int)   # for each pair, store direction bitmask
     NI = defaultdict(lambda: [set(), set()]) # for each node, store directed neighbors and mutual neighbors
@@ -28,22 +24,7 @@ def buildPANEIndex(dataset):
     last_mutual_t, last_mutual_key = -1, ()
 
     for u_raw, v_raw, timestamp, sentiment in dataset:
-        # Map IDs to contiguous integers
-        if u_raw not in id_map:
-            id_map[u_raw] = next_id
-            u = next_id
-            next_id += 1
-        else:
-            u = id_map[u_raw]
-
-        if v_raw not in id_map:
-            id_map[v_raw] = next_id
-            v = next_id
-            next_id += 1
-        else:
-            v = id_map[v_raw]
-
-            
+        u, v = node_mapping[int(u_raw)], node_mapping[int(v_raw)]
         if u < v:
             key = (u, v)
             direction_bit = 1 # u -> v
@@ -171,6 +152,7 @@ def findBoundsPANE(index, t_obs, method, rate):
 if __name__ == "__main__":
     dataset_dir = "./Datasets/OSNs/"
     dataset = "C144_attributed.txt"
+    node_mapping_file = "./Datasets/Node_Mapping/C144_node_mapping.txt"
 
     # Input parameters
     decay_method = "exp"
@@ -179,9 +161,10 @@ if __name__ == "__main__":
 
     # Preprocess the dataset
     pro_dataset = preprocess_dataset(dataset_dir + dataset, t_obs)
+    node_mapping = read_node_mapping(node_mapping_file)
 
     # Construct an indexed structure
-    index, last_mutual_key, last_key = time_call("building the PANE-Index", buildPANEIndex, pro_dataset)
+    index, last_mutual_key, last_key = time_call("building the PANE-Index", buildPANEIndex, pro_dataset, node_mapping)
 
     # Calculate the min-max values for each measure
     LB_values, UB_values = time_call("calculating the boundaries", findBoundsPANE, index, t_obs, decay_method, decay_rate)
