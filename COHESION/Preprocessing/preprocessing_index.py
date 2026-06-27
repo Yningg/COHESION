@@ -46,19 +46,15 @@ def findBoundsPANE(index, t_obs, method, rate):
 
 
 if __name__ == "__main__":
-    dataset_dir = "./Datasets/OSNs/"
-    dataset = "C144"
-    node_mapping_file = "./Datasets/Node_Mapping/C144_node_mapping.txt"
-
     # Input parameters
     decay_method = "exp"
     decay_rate = 0.0001
     t_obs = 1672531150
 
     # Preprocess the dataset
+    node_mapping_file = "./Datasets/Node_Mapping/C144_node_mapping.txt"
     node_mapping = read_node_mapping(node_mapping_file)
-    dataset_path = dataset_dir + dataset + "_attributed.txt"
-    pro_dataset, t_obs = preprocess_dataset(dataset_path, dataset, node_mapping, t_obs)
+    pro_dataset, t_obs = preprocess_dataset("./Datasets/OSNs/C144_attributed.txt", "C144", node_mapping, t_obs)
 
     # Construct an indexed structure
     index, last_mutual_key, last_key = buildPANEIndex(pro_dataset)

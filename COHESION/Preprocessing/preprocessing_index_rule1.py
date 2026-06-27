@@ -104,10 +104,6 @@ def findBoundsPANE(trimmed_index, t_obs, method, rate):
 
 
 if __name__ == "__main__":
-    dataset_dir = "./Datasets/OSNs/"
-    node_mapping_file = "./Datasets/Node_Mapping/C144_node_mapping.txt"
-    dataset = "C144"
-
     # Input parameters
     decay_method = "exp"
     decay_rate = 0.0001
@@ -115,9 +111,9 @@ if __name__ == "__main__":
     threshold_T = pow(10, -10)
 
     # Preprocess the dataset
+    node_mapping_file = "./Datasets/Node_Mapping/C144_node_mapping.txt"
     node_mapping = read_node_mapping(node_mapping_file)
-    dataset_path = dataset_dir + dataset + "_attributed.txt"
-    pro_dataset, t_obs = preprocess_dataset(dataset_path, dataset, node_mapping, t_obs)
+    pro_dataset, t_obs = preprocess_dataset("./Datasets/OSNs/C144_attributed.txt", "C144", node_mapping, t_obs)
 
     # Based on the dataset, construct an indexed structure
     start_t = findStartTime(t_obs, decay_rate, threshold_T)

@@ -21,15 +21,15 @@ def ATGS(index, u, community_node, t_obs, method, rate):
     out_community_neighbors = total_neighbors - in_community_neighbors
     mutual_neighbors = index["NI"][u][1] & set(community_node)
 
-    uE = pp_i.getEdges(index["PI"], u, in_community_neighbors)
+    uE, _ = pp_i.getEdges(index["PI"], u, in_community_neighbors, trim=False)
     EI_value = calcEnjoyment(uE, t_obs, method, rate)
     
     SIT_value = 0
-    uME = pp_i.getPairEdges(index["PI"], u, mutual_neighbors)
+    uME = pp_i.getPairEdges(index["PI"], u, mutual_neighbors, trim=False, sort=False)
     for _, edges in uME.items():
         SIT_value += calcEnjoyment(edges, t_obs, method, rate)
 
-    uOE = pp_i.getEdges(index["PI"], u, out_community_neighbors)
+    uOE, _ = pp_i.getEdges(index["PI"], u, out_community_neighbors, trim=False)
     CED_value = EI_value - calcEnjoyment(uOE, t_obs, method, rate)
 
     return EI_value, SIT_value, CED_value
@@ -97,7 +97,7 @@ if __name__ == '__main__':
 
         dataset_path = data_path + dataset + "_attributed.txt"
         pro_dataset, t_obs = preprocess_dataset(dataset_path, dataset, node_mapping, last_timestamps[dataset])
-        index, last_mutual_key, last_key =pp_i.buildPANEIndex(pro_dataset, node_mapping)
+        index, last_mutual_key, last_key = pp_i.buildPANEIndex(pro_dataset)
         LB_values, UB_values = pp_i.findBoundsPANE(index, t_obs, decay_method, decay_rate)
     
         community_dir = community_path + dataset + "/"
@@ -137,9 +137,9 @@ if __name__ == '__main__':
         output_file = community_dir + dataset + "_communities_cohesiveness_I_COHESION_w.txt"
 
         # Write the results to a txt file
-        with open(output_file, "w") as f:
-            f.write("Community\tMeasure Scores\tCohesiveness Score\tExplanation\tCompTime\tExpTime\n")
-            for line in results:
-                f.write(line)
+        # with open(output_file, "w") as f:
+        #     f.write("Community\tMeasure Scores\tCohesiveness Score\tExplanation\tCompTime\tExpTime\n")
+        #     for line in results:
+        #         f.write(line)
         
-        print(f"Results saved to {output_file}")
+        # print(f"Results saved to {output_file}")

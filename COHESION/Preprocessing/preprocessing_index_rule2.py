@@ -12,7 +12,7 @@ from pympler import asizeof
 
 target_path = "./"
 sys.path.append(target_path)
-from COHESION.Utils import buildPANEIndex, trimPANEIndex, calcEnjoyment, getEdges, getPairEdges, preprocess_dataset, time_call, read_node_mapping, getATGSBounds, getGIDBounds
+from COHESION.Utils import buildPANEIndex, calcEnjoyment, getEdges, getPairEdges, preprocess_dataset, time_call, read_node_mapping, getATGSBounds, getGIDBounds
 
 
 
@@ -120,10 +120,7 @@ def findBoundsPANE(index, t_obs, last_mutual_key, last_key, method, rate):
 
 
 if __name__ == "__main__":
-    dataset_dir = "./Datasets/OSNs/"
-    node_mapping_file = "./Datasets/Node_Mapping/C144_node_mapping.txt"
-    dataset = "C144"
-
+    
     # Input parameters
     decay_method = "exp"
     decay_rate = 0.0001
@@ -131,9 +128,9 @@ if __name__ == "__main__":
     threshold_T = pow(10, -10)
 
     # Preprocess the dataset
+    node_mapping_file = "./Datasets/Node_Mapping/C144_node_mapping.txt"
     node_mapping = read_node_mapping(node_mapping_file)
-    dataset_path = dataset_dir + dataset + "_attributed.txt"
-    pro_dataset, t_obs = preprocess_dataset(dataset_path, dataset, node_mapping, t_obs)
+    pro_dataset, t_obs = preprocess_dataset("./Datasets/OSNs/C144_attributed.txt", "C144", node_mapping, t_obs)
 
     # Based on the dataset, construct an indexed structure
     index, last_mutual_key, last_key = buildPANEIndex(pro_dataset)

@@ -87,16 +87,13 @@ def findBounds(graph, t_obs, method, rate):
 
 
 if __name__ == "__main__":
-    dataset_dir = "./Datasets/OSNs/"
-    dataset = "CC_attributed.txt"
-
     # Input parameters
     decay_method = "exp"
     decay_rate = 0.0001
     t_obs = 1643673425
 
     # Construct the graph based on the sliced edge
-    G, t_obs = graph_construction(dataset_dir + dataset, dataset, t_obs)
+    G, t_obs = graph_construction('./Datasets/OSNs/CC_attributed.txt', 'CC', t_obs)
 
     # Calculate the min-max values for each measure
     LB_values, UB_values = findBounds(G, t_obs, decay_method, decay_rate)
