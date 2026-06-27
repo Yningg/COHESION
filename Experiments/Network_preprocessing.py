@@ -100,7 +100,7 @@ if __name__ == "__main__":
         # Method 1: Index-oblivious method
         starttime = time.time()
         if dataset in S_dataset_list:
-            attributed_G, t_obs = pp_o.graph_construction(dataset_dir + dataset + "_attributed.txt", dataset, last_timestamps[dataset])
+            attributed_G, t_obs = pp_o.graph_construction(attribute_file, dataset, last_timestamps[dataset])
         else:
             attributed_G, t_obs = graph_construction(attribute_file, dataset, last_timestamps[dataset])
         LB_values, UB_values = pp_o.findBounds(attributed_G, t_obs, decay_method, decay_rate)
