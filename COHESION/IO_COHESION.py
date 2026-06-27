@@ -11,8 +11,8 @@ from collections import defaultdict
 target_path = "./"
 sys.path.append(target_path)
 from COHESION.Explanation_generation import generate_explanation
-import COHESION.Preprocessing.preprocessing_basic as pp
-from COHESION.Utils import graph_construction, calcEnjoyment, time_call, normalize_scores
+import COHESION.Preprocessing.preprocessing_o as pp
+from COHESION.Utils import graph_construction, calcEnjoyment, normalize_scores
 
 
 def getEdges(graph, u, community_node, t_obs):
@@ -44,19 +44,19 @@ def getEdges(graph, u, community_node, t_obs):
     return uE, uME, uOE
 
 
-def ATGS(graph, u, community_node, t_obs, rate, method):
+def ATGS(graph, u, community_node, t_obs, method, rate):
     EI_value, SIT_value, CED_value = 0, 0, 0
     uE, uME, uOE = getEdges(graph, u, community_node, t_obs)
 
     # Calculate the Enjoyment Index (EI) of node u in subgraph H at time t_obs
-    EI_value = calcEnjoyment(uE, t_obs, rate, method)
+    EI_value = calcEnjoyment(uE, t_obs, method, rate)
 
     # Calculate the Sentimental interaction tendency (SIT) of node i in subgraph H at time t_obs
     for _, edges in uME.items():
-        SIT_value += calcEnjoyment(edges, t_obs, rate, method) 
+        SIT_value += calcEnjoyment(edges, t_obs, method, rate) 
     
     # Calculate the Comparative Enjoyment Degree(CED) of node i in subgraph H at time t_obs
-    CED_value = EI_value - calcEnjoyment(uOE, t_obs, rate, method)
+    CED_value = EI_value - calcEnjoyment(uOE, t_obs, method, rate)
 
     return EI_value, SIT_value, CED_value
 
@@ -85,7 +85,7 @@ def calc_cs(G, community_node, t_obs, method, rate, weights, LB_values, UB_value
     EI_list, SIT_list, CED_list = [], [], []
 
     for u in tqdm.tqdm(community_node, desc="Calculating ATG-S measures for each user"):
-        EI_u, SIT_u, CED_u = ATGS(G, u, community_node, t_obs, rate, method)
+        EI_u, SIT_u, CED_u = ATGS(G, u, community_node, t_obs, method, rate)
         EI_list.append(normalize_scores(EI_u, "EI", LB_values, UB_values))
         SIT_list.append(normalize_scores(SIT_u, "SIT", LB_values, UB_values))
         CED_list.append(normalize_scores(CED_u, "CED", LB_values, UB_values))
@@ -118,8 +118,8 @@ if __name__ == '__main__':
     for dataset in dataset_list:
         dataset_path = data_path + dataset + "_attributed.txt"
 
-        G = time_call("building the original graph", graph_construction, dataset_path, last_timestamps[dataset])
-        LB_values, UB_values = time_call("calculating the boundaries", pp.findBounds, G, last_timestamps[dataset], decay_method, decay_rate)
+        G, t_obs = graph_construction(dataset_path, dataset, last_timestamps[dataset])
+        LB_values, UB_values = pp.findBounds(G, t_obs, decay_method, decay_rate)
 
         community_dir = community_path + dataset + "/"
         community_files = [community_dir + f for f in os.listdir(community_dir) if "Integrated" in f][0]
@@ -133,7 +133,7 @@ if __name__ == '__main__':
                 starttime = time.time()
                 
                 community = list(ast.literal_eval(line))
-                S, MS = calc_cs(G, community, last_timestamps[dataset], decay_method, decay_rate, measure_weights, LB_values, UB_values)
+                S, MS = calc_cs(G, community, t_obs, decay_method, decay_rate, measure_weights, LB_values, UB_values)
                 endtime = time.time()
                 time_lapse_comp = endtime - starttime
                 time_spent_comp.append(time_lapse_comp)

@@ -10,11 +10,11 @@ target_path = "./"
 sys.path.append(target_path)
 from COHESION.Explanation_generation import generate_explanation
 import COHESION.Preprocessing.preprocessing_index_trim as pp_it
-from COHESION.Utils import calcEnjoyment, findStartTime, getEdges, getPairEdges, time_call, normalize_scores, preprocess_dataset, read_node_mapping
+from COHESION.Utils import calcEnjoyment, findStartTime, getEdges, getPairEdges, normalize_scores, preprocess_dataset, read_node_mapping
 
 
 
-def ATGS(index, u, community_node, t_obs, rate, method):
+def ATGS(index, u, community_node, t_obs, method, rate):
     
     EI_value, SIT_value, CED_value = 0, 0, 0
     total_neighbors, mutual_neighbors = set(), set()
@@ -25,16 +25,16 @@ def ATGS(index, u, community_node, t_obs, rate, method):
     in_community_neighbors = total_neighbors & set(community_node)
     out_community_neighbors = total_neighbors - in_community_neighbors
 
-    uE = getEdges(index["PI"], u, in_community_neighbors)
-    EI_value = calcEnjoyment(uE, t_obs, rate, method)
+    uE, _ = getEdges(index["PI"], u, in_community_neighbors, trim=True)
+    EI_value = calcEnjoyment(uE, t_obs, method, rate)
     
     SIT_value = 0
-    uME = getPairEdges(index["PI"], u, mutual_neighbors)
+    uME = getPairEdges(index["PI"], u, mutual_neighbors, trim=True, sort=True)
     for _, edges in uME.items():
-        SIT_value += calcEnjoyment(edges, t_obs, rate, method)
+        SIT_value += calcEnjoyment(edges, t_obs, method, rate)
 
-    uOE = getEdges(index["PI"], u, out_community_neighbors)
-    CED_value = EI_value - calcEnjoyment(uOE, t_obs, rate, method)
+    uOE, _ = getEdges(index["PI"], u, out_community_neighbors, trim=True)
+    CED_value = EI_value - calcEnjoyment(uOE, t_obs, method, rate)
 
     return EI_value, SIT_value, CED_value
 
@@ -46,7 +46,7 @@ def GIS(PI, community_node, t_obs):
     nodes_num = len(community_node)
     
     if nodes_num > 1:
-        for (u, v), (count, _) in PI.items():
+        for (u, v), (count, edges) in PI.items():
             if u in community_node and v in community_node:
                 total_activities_num += count
                 if u != v:
@@ -66,7 +66,7 @@ def calc_cs_index(trimmed_index, community_node, t_obs, method, rate, weights, L
     EI_list, SIT_list, CED_list = [], [], []
 
     for u in tqdm.tqdm(community_node, desc="Calculating ATG-S measures for each user"):
-        EI_u, SIT_u, CED_u = ATGS(trimmed_index, u, community_node, t_obs, rate, method)
+        EI_u, SIT_u, CED_u = ATGS(trimmed_index, u, community_node, t_obs, method, rate)
         EI_list.append(normalize_scores(EI_u, "EI", LB_values, UB_values))
         SIT_list.append(normalize_scores(SIT_u, "SIT", LB_values, UB_values))
         CED_list.append(normalize_scores(CED_u, "CED", LB_values, UB_values))
@@ -98,15 +98,15 @@ if __name__ == '__main__':
 
 
     for dataset in dataset_list:
-        dataset_path = data_path + dataset + "_attributed.txt"
         node_mapping = read_node_mapping(node_mapping_path + dataset + "_node_mapping.txt")
         
-        start_t = findStartTime(last_timestamps[dataset], decay_rate)
-        
-        pro_dataset = time_call("processing the dataset", preprocess_dataset, dataset_path, last_timestamps[dataset])
-        index, last_mutual_key, last_key = time_call("building the PANE-Index", pp_it.buildPANEIndex, pro_dataset, node_mapping)
-        trimmed_index, mutual_nodes = time_call("trimming the PANE-Index", pp_it.trimPANEIndex, index, start_t)
-        LB_values, UB_values = time_call("finding bounds", pp_it.findBoundsPANE, trimmed_index, mutual_nodes, last_timestamps[dataset], last_mutual_key, last_key, decay_method, decay_rate)
+        dataset_path = data_path + dataset + "_attributed.txt"
+        pro_dataset, t_obs = preprocess_dataset(dataset_path, dataset, node_mapping, last_timestamps[dataset])
+        start_t = findStartTime(t_obs, decay_rate)
+
+        index, last_mutual_key, last_key = pp_it.buildPANEIndex(pro_dataset)
+        trimmed_index, mutual_nodes = pp_it.trimPANEIndex(index, start_t)
+        LB_values, UB_values = pp_it.findBoundsPANE(trimmed_index, mutual_nodes, t_obs, last_mutual_key, last_key, decay_method, decay_rate)
 
         community_dir = community_path + dataset + "/"
         community_files = [community_dir + f for f in os.listdir(community_dir) if "Integrated" in f][0]
@@ -121,7 +121,7 @@ if __name__ == '__main__':
                 starttime = time.time()
                 community = list(ast.literal_eval(line))
                 community = [node_mapping[int(u)] for u in community]
-                S, MS = calc_cs_index(trimmed_index, community, last_timestamps[dataset], decay_method, decay_rate, measure_weights, LB_values, UB_values)
+                S, MS = calc_cs_index(trimmed_index, community, t_obs, decay_method, decay_rate, measure_weights, LB_values, UB_values)
                 endtime = time.time()
                 time_lapse_comp = endtime - starttime
                 time_spent_comp.append(time_lapse_comp)

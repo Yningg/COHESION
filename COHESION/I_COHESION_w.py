@@ -10,10 +10,10 @@ sys.path.append(target_path)
 
 from COHESION.Explanation_generation import generate_explanation
 import COHESION.Preprocessing.preprocessing_index as pp_i
-from COHESION.Utils import time_call, calcEnjoyment, normalize_scores, preprocess_dataset, read_node_mapping
+from COHESION.Utils import calcEnjoyment, normalize_scores, preprocess_dataset, read_node_mapping
 
 
-def ATGS(index, u, community_node, t_obs, rate, method):
+def ATGS(index, u, community_node, t_obs, method, rate):
     
     EI_value, SIT_value, CED_value = 0, 0, 0
     total_neighbors = index["NI"][u][0] | index["NI"][u][1]
@@ -22,15 +22,15 @@ def ATGS(index, u, community_node, t_obs, rate, method):
     mutual_neighbors = index["NI"][u][1] & set(community_node)
 
     uE = pp_i.getEdges(index["PI"], u, in_community_neighbors)
-    EI_value = calcEnjoyment(uE, t_obs, rate, method)
+    EI_value = calcEnjoyment(uE, t_obs, method, rate)
     
     SIT_value = 0
     uME = pp_i.getPairEdges(index["PI"], u, mutual_neighbors)
     for _, edges in uME.items():
-        SIT_value += calcEnjoyment(edges, t_obs, rate, method)
+        SIT_value += calcEnjoyment(edges, t_obs, method, rate)
 
     uOE = pp_i.getEdges(index["PI"], u, out_community_neighbors)
-    CED_value = EI_value - calcEnjoyment(uOE, t_obs, rate, method)
+    CED_value = EI_value - calcEnjoyment(uOE, t_obs, method, rate)
 
     return EI_value, SIT_value, CED_value
 
@@ -62,7 +62,7 @@ def calc_cs_index(index, community_node, t_obs, method, rate, weights, LB_values
     EI_list, SIT_list, CED_list = [], [], []
 
     for u in tqdm.tqdm(community_node, desc="Calculating ATG-S measures for each user"):
-        EI_u, SIT_u, CED_u = ATGS(index, u, community_node, t_obs, rate, method)
+        EI_u, SIT_u, CED_u = ATGS(index, u, community_node, t_obs, method, rate)
         EI_list.append(normalize_scores(EI_u, "EI", LB_values, UB_values))
         SIT_list.append(normalize_scores(SIT_u, "SIT", LB_values, UB_values))
         CED_list.append(normalize_scores(CED_u, "CED", LB_values, UB_values))
@@ -93,12 +93,12 @@ if __name__ == '__main__':
     last_timestamps = {"BTW": 1506315747, "CC": 1643673425, "C26": 1672531185, "C144": 1672531150}
 
     for dataset in dataset_list:
-        dataset_path = data_path + dataset + "_attributed.txt"
         node_mapping = read_node_mapping(node_mapping_path + dataset + "_node_mapping.txt")
 
-        pro_dataset = time_call("processing the dataset", preprocess_dataset, dataset_path, last_timestamps[dataset])
-        index, last_mutual_key, last_key = time_call("building the PANE-Index", pp_i.buildPANEIndex, pro_dataset, node_mapping)
-        LB_values, UB_values = time_call("calculating the boundaries", pp_i.findBoundsPANE, index, last_timestamps[dataset], decay_method, decay_rate)
+        dataset_path = data_path + dataset + "_attributed.txt"
+        pro_dataset, t_obs = preprocess_dataset(dataset_path, dataset, node_mapping, last_timestamps[dataset])
+        index, last_mutual_key, last_key =pp_i.buildPANEIndex(pro_dataset, node_mapping)
+        LB_values, UB_values = pp_i.findBoundsPANE(index, t_obs, decay_method, decay_rate)
     
         community_dir = community_path + dataset + "/"
         community_files = [community_dir + f for f in os.listdir(community_dir) if "Integrated" in f][0]
@@ -113,7 +113,7 @@ if __name__ == '__main__':
                 starttime = time.time()
                 community = list(ast.literal_eval(line))
                 community = [node_mapping[int(u)] for u in community]
-                S, MS = calc_cs_index(index, community, last_timestamps[dataset], decay_method, decay_rate, measure_weights, LB_values, UB_values)
+                S, MS = calc_cs_index(index, community, t_obs, decay_method, decay_rate, measure_weights, LB_values, UB_values)
                 endtime = time.time()
                 time_lapse_comp = endtime - starttime
                 time_spent_comp.append(time_lapse_comp)
