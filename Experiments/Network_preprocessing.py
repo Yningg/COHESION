@@ -77,7 +77,6 @@ if __name__ == "__main__":
 
     S_dataset_list = ["BTW", "CC", "C26", "C144"]
     L_dataset_list = ["AskUbuntu", "StackOverflow", "MathOverflow", "SuperUser"]
-    L_dataset_list = ["StackOverflow"]
     last_timestamps = {"BTW": 1506315747, "CC": 1643673425, "C26": 1672531185, "C144": 1672531150, "AskUbuntu": 1457266069, "StackOverflow": 1457273428, "MathOverflow": 1457262355, "SuperUser": 1457266493}
 
     result_timespent = {}
